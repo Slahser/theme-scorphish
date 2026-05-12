@@ -16,18 +16,20 @@ function _prompt_rubies -a color -d 'Display current Ruby (rvm/rbenv)'
       set -gx LAST_RUBY_VERSION $RUBY_VERSION
     end
   else if type -q rbenv
-    set -gx ruby_version (rbenv version-name)
+    if [ -z "$ruby_version" ]
+      set -gx ruby_version (rbenv version-name)
+    end
   else if [ -z "$ruby_version" ]
-    set -gx ruby_version (ruby --version | cut -d\  -f2)
+    set -gx ruby_version (string split ' ' (ruby --version))[2]
   end
-  echo -n -s $color (echo -n -s $ruby_version | cut -d- -f2-)
+  echo -n -s $color (string split '-' $ruby_version)[-1]
 end
 
 function _prompt_virtualenv -a color -d "Display currently activated Python virtual environment"
   type -q python; or return
   [ "$theme_display_virtualenv" = 'no' ]; and return
   if [ "$VIRTUAL_ENV" != "$LAST_VIRTUAL_ENV" -o -z "$PYTHON_VERSION" ]
-    set -gx PYTHON_VERSION (python --version 2>&1 | cut -d\  -f2)
+    set -gx PYTHON_VERSION (string split ' ' (python --version 2>&1))[2]
     set -gx LAST_VIRTUAL_ENV $VIRTUAL_ENV
   end
   echo -n -s $color $PYTHON_VERSION
@@ -37,8 +39,8 @@ end
 function _prompt_rust -a color -d "Display currently activated Rust"
   type -q rustc; or return
   [ "$theme_display_rust" != 'yes' ]; and return
-  if echo $history[1] | grep -q 'rustup default'; or not set -q RUST_VERSION
-    set -U RUST_VERSION (rustc --version | cut -d\  -f2)
+  if string match -q 'rustup default*' -- $history[1]; or not set -q RUST_VERSION
+    set -U RUST_VERSION (string split ' ' (rustc --version))[2]
   end
   echo -n -s $color $RUST_VERSION
 end
@@ -61,16 +63,15 @@ function _prompt_whoami -a sep_color -a color -d "Display user@host if on a SSH 
 end
 
 function _git_branch_name
-  echo (command git symbolic-ref HEAD 2> /dev/null | sed -e 's|^refs/heads/||')
+  echo (command git symbolic-ref --short HEAD 2> /dev/null)
 end
 
 function _is_git_dirty
-  echo (command git status -s --ignore-submodules=dirty 2> /dev/null)
+  echo (command git diff --no-ext-diff --quiet 2> /dev/null; or echo dirty)
 end
 
 function _git_ahead_count -a remote -a branch_name
-  echo (command git log $remote/$branch_name..HEAD 2> /dev/null | \
-    grep '^commit' | wc -l | tr -d ' ')
+  echo (command git rev-list --count $remote/$branch_name..HEAD 2> /dev/null)
 end
 
 function _git_dirty_remotes -a remote_color -a ahead_color
@@ -95,15 +96,21 @@ function _git_dirty_remotes -a remote_color -a ahead_color
 end
 
 function _prompt_versions -a blue gray green orange red append
+  set -l parts
   set -l prompt_rubies (_prompt_rubies $red)
-
   set -l prompt_virtualenv (_prompt_virtualenv $blue)
-
   set -l prompt_rust (_prompt_rust $orange)
-
   set -l prompt_node (_prompt_node $green)
-
-  echo -n -e -s "$prompt_rubies $prompt_virtualenv $prompt_rust $prompt_node" | string trim | string replace -ar " +" "$gray|" | tr -d '\n'
+  test -n "$prompt_rubies"; and set -a parts $prompt_rubies
+  test -n "$prompt_virtualenv"; and set -a parts $prompt_virtualenv
+  test -n "$prompt_rust"; and set -a parts $prompt_rust
+  test -n "$prompt_node"; and set -a parts $prompt_node
+  set -l count (count $parts)
+  test $count -eq 0; and return
+  for i in (seq $count)
+    echo -n -s $parts[$i]
+    test $i -lt $count; and echo -n -s $gray '|'
+  end
 end
 
 function _prompt_git -a gray normal orange red yellow
