@@ -1,81 +1,61 @@
-## Scorphish
+## Scorphish (Modernized)
 
-Compact. Sufficient.
+Compact. Sufficient. Fast.
 
-![scorphish](https://user-images.githubusercontent.com/2112697/60178902-def52b80-97f2-11e9-961d-0f7c115ccc49.png)
+### Layout
 
-### Left prompt
+```
+                                                          ⚡️ 1.2s  ← previous cmd duration (right-aligned)
+‹main*› ~/p/foo 18:26:44        Go:1.24 | Py:3.12                  ← git + path + time ... versions
+»»»»                                                               ← input line
+```
 
-Abbreviated path, Ruby version and gemset, Python version and virtualenv, Rust
-version, NodeJS version, Git information and last command execution time.
+- **Duration** — tiered formatting: `42ms`, `1.2s`, `2m05s`, `1h30m`. Color escalates with time.
+- **Git** — branch, dirty `*`, ahead `+N` per remote. Left side, high visibility.
+- **Path** — fish abbreviated `prompt_pwd`.
+- **Time** — `HH:MM:SS` after path.
+- **Versions** — right-aligned, `Name:Version` format, dimmed. Only detected languages shown.
+- **Arrows** — green gradient on success, red gradient on failure.
 
-#### Configuration:
+### Environment Detection
 
-The following options can be added to `~/.config/fish/conf.d/omf.fish` to change
-the appearance and behavior of left prompt.
+| Language | Manager Support | Toggle | Default |
+|----------|----------------|--------|---------|
+| Go | direct | `theme_display_go` | **off** |
+| Rust | rustup | `theme_display_rust` | **off** |
+| Node | nvm, fnm, volta, mise | `theme_display_node` | **on** |
+| Bun | direct | `theme_display_bun` | **off** |
+| Deno | direct | `theme_display_deno` | **off** |
+| Python | venv, conda, uv, poetry | `theme_display_python` | **on** |
+| Ruby | mise, asdf, rvm, rbenv | `theme_display_ruby` | **off** |
 
- * To display current Rust version:
+All detectors are cached — subprocess only runs on first call or environment change.
+
+### Configuration
+
+Add to `~/.config/fish/conf.d/omf.fish`:
 
 ```fish
+# Enable opt-in language detection
+set -g theme_display_go yes
 set -g theme_display_rust yes
-```
 
- * To display current Node version:
+# Disable default-on detection
+set -g theme_display_node no
+set -g theme_display_python no
 
-```fish
-set -g theme_display_node yes
-```
+# Disable git info entirely
+set -g theme_display_git no
 
-> Note: Node version may be lazy loaded depending on which nvm plugin you're
-> using
-
- * To display current working directory on a second line:
-
-```fish
-set -g theme_display_pwd_on_second_line yes
-```
-
- * To display Git information on the first line:
-
-```fish
-set -g theme_display_git_on_first_line yes
-```
-
- * To omit only dirty status of current local Git repository and have
-   a faster prompt:
-
-```fish
+# Disable only git dirty check (faster prompt in large repos)
 set -g theme_display_git_dirty no
 ```
 
- * To omit information of current Git repository altogether:
+### Special Environments
 
-```fish
-set -g theme_display_git no
-
-```
-
- * To omit current Ruby version and gemset:
-
-```fish
-set -g theme_display_ruby no
-
-```
-
- * To omit current Python version and virtualenv:
-
-```fish
-set -g theme_display_virtualenv no
-
-```
-
-### Right prompt
-
-Last command's exit code and current time
+- **SSH** — shows `user@host` prefix
+- **Container/Devcontainer/Codespace** — shows hostname in orange
 
 ### Acknowledgments
 
-This theme is based on Zish and Coffeandcode themes, many thanks to their
-authors!
-
-Enjoy!
+Based on the original Scorphish theme by Pablo S. Blum de Aguiar.
