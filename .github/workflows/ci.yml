@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fish
+        run: sudo apt-get update && sudo apt-get install -y fish
+      - name: Check fish syntax
+        run: |
+          shopt -s nullglob
+          files=(functions/*.fish)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no fish files"
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            echo "checking $f"
+            fish -n "$f"
+          done
