@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.changeset/**'
+      - 'LICENSE*'
+      - '.coderabbit.yaml'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.changeset/**'
+      - 'LICENSE*'
+      - '.coderabbit.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      # fish is not in the runner image, so the apt round trip (9s of a 13s job)
+      # repeated on every push; cache the installed packages instead.
+      - uses: awalsh128/cache-apt-pkgs-action@v1.6.3
+        with:
+          packages: fish
+          version: 1.0
+      - name: Check fish syntax
+        run: |
+          shopt -s nullglob
+          files=(functions/*.fish)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no fish files"
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            echo "checking $f"
+            fish -n "$f"
+          done
